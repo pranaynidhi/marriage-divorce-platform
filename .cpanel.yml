@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    # copy everything (except this manifest) into public_html
+    - rsync -av --delete --exclude=".cpanel.yml" . /home8/marriage/public_html/
