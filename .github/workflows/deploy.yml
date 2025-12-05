@@ -7,27 +7,33 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (20.19.0)
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20.19.0'
+          cache: 'npm'
 
-      - name: Install dependencies & build
+      - name: Install & Build
         run: |
           npm ci
           npm run build
 
-      # copy the cPanel manifest into dist/
-      - name: Include cPanel manifest
-        run: cp .cpanel.yml dist/
+      - name: Copy cPanel deploy manifest
+        run: |
+          cp .cpanel.yml dist/
 
-      - name: Push dist/ → production
+      - name: Push dist/ → production branch
         uses: peaceiris/actions-gh-pages@v3
         with:
+          # This uses the built-in GITHUB_TOKEN to authenticate the push
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: production
           publish_dir: ./dist
+          # (optional) overwrite the commit author
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
