@@ -1,39 +1,52 @@
-name: Build & Publish to Production Branch
+name: Build & Deploy to cPanel
 
 on:
   push:
     branches: [ master ]
 
 jobs:
-  build-and-publish:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      # 1) grab your code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (20.19.0)
+      # 2) install Node 20 & cache npm
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20.19.0'
           cache: 'npm'
 
+      # 3) build the static site
       - name: Install & Build
         run: |
           npm ci
-          npm run build
+          npm run build    # produces "dist/"
 
-      - name: Copy cPanel deploy manifest
-        run: |
-          cp .cpanel.yml dist/
-
-      - name: Push dist/ → production branch
-        uses: peaceiris/actions-gh-pages@v3
+      # 4) clean out old files on the server (except .htaccess)
+      - name: Clean remote public_html
+        uses: appleboy/ssh-action@v0.1.9
         with:
-          # This uses the built-in GITHUB_TOKEN to authenticate the push
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: production
-          publish_dir: ./dist
-          # (optional) overwrite the commit author
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+          host:       ${{ secrets.SSH_HOST }}
+          port:       ${{ secrets.SSH_PORT }}
+          username:   ${{ secrets.SSH_USER }}
+          key:        ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            find /home8/${{ secrets.SSH_USER }}/public_html \
+              -maxdepth 1 -mindepth 1 \
+              -not -name '.htaccess' \
+              -exec rm -rf {} +
+
+      # 5) copy the built files up via SCP
+      - name: Copy files to public_html
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host:       ${{ secrets.SSH_HOST }}
+          port:       ${{ secrets.SSH_PORT }}
+          username:   ${{ secrets.SSH_USER }}
+          key:        ${{ secrets.SSH_PRIVATE_KEY }}
+          source:     "dist/*"
+          target:     "/home8/${{ secrets.SSH_USER }}/public_html"
