@@ -1,18 +1,20 @@
 ---
 deployment:
   tasks:
-    - echo "Start deploy: $(date)"
-    - npm ci
-    - npm run build
+    - echo "Deploy started: $(date)"
 
-    # delete everything in public_html except .htaccess
+    # 1) wipe out old site (but keep .htaccess if you have one)
     - |
-      find /home8/marriage8/public_html \
+      find /home8/marriage/public_html \
         -maxdepth 1 -mindepth 1 \
         -not -name '.htaccess' \
         -exec rm -rf {} +
 
-    # copy your freshly-built static files
-    - cp -a dist/. /home8/marriage8/public_html/
+    # 2) copy everything from the git‐checked‐out directory 
+    #    (i.e. the static build you’ll push into 'production')
+    - cp -a . /home8/marriage/public_html/
 
-    - echo "Done deploy: $(date)"
+    # 3) remove the manifest itself from your live dir
+    - rm -f /home8/marriage/public_html/.cpanel.yml
+
+    - echo "Deploy finished: $(date)"
