@@ -1,5 +1,18 @@
 ---
 deployment:
   tasks:
-    # copy everything (except this manifest) into public_html
-    - rsync -av --delete --exclude=".cpanel.yml" . /home8/marriage/public_html/
+    - echo "Start deploy: $(date)"
+    - npm ci
+    - npm run build
+
+    # delete everything in public_html except .htaccess
+    - |
+      find /home8/marriage8/public_html \
+        -maxdepth 1 -mindepth 1 \
+        -not -name '.htaccess' \
+        -exec rm -rf {} +
+
+    # copy your freshly-built static files
+    - cp -a dist/. /home8/marriage8/public_html/
+
+    - echo "Done deploy: $(date)"
