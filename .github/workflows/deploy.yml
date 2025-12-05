@@ -1,11 +1,11 @@
 name: Build & Publish to production
 
 permissions:
-  contents: write
+  contents: write   # allow GITHUB_TOKEN to push
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build-and-publish:
@@ -23,10 +23,10 @@ jobs:
           node-version: '20.19.0'
           cache: npm
 
-      - name: Install & build
+      - name: Install & Build
         run: |
           npm ci
-          npm run build   # → creates ./dist
+          npm run build    # → produces ./dist
 
       - name: Clone production branch
         run: |
@@ -41,9 +41,14 @@ jobs:
           rm -rf production/*
           cp -a dist/. production/
 
+      - name: Configure Git user for production repo
+        run: |
+          git -C production config user.name  "github-actions[bot]"
+          git -C production config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Commit & push to production
         run: |
           cd production
-          git add -A
+          git add --all
           git commit -m "Deploy ${GITHUB_SHA}" || echo "Nothing to commit"
           git push origin production
